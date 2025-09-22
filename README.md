@@ -301,4 +301,4 @@ Al completar exitosamente la práctica, deberías obtener:
 
 Samuel - Práctica 2 de Seguridad  
 Universidad - Curso 2025-26  
-Fecha: 22 de Septiembre, 2025
+Fecha: 21 de Septiembre, 2025
