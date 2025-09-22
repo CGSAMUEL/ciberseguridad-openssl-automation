@@ -333,6 +333,8 @@ case "$1" in
         log "Probando herramientas..."
         echo "Probando netcat..."
         nc -z "$TARGET_HOST" 22 && echo "Puerto SSH accesible" || echo "Puerto SSH no accesible"
+        echo "Probando puerto del desafío..."
+        nc -z "$TARGET_HOST" "$TARGET_PORT" && echo "Puerto 54471 accesible" || echo "Puerto 54471 NO accesible - NECESITAS EJECUTAR DESDE DUMMY"
         echo "Probando OpenSSL..."
         echo "hola" | openssl enc -base64
         ;;
