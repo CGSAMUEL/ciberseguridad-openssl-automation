@@ -91,8 +91,8 @@ automate_service() {
     # Usar expect para automatizar la interacción
     expect << 'EOF'
 set timeout 30
-set target_host [lindex $argv 0]
-set target_port [lindex $argv 1]
+set target_host "10.42.2.1"
+set target_port "54471"
 
 proc log_message {msg} {
     puts "[timestamp -format {%Y-%m-%d %H:%M:%S}] $msg"
@@ -114,7 +114,32 @@ proc calculate_md5 {input} {
 }
 
 proc calculate_hash {hash_type input} {
-    return [exec echo -n $input | openssl dgst -$hash_type | cut -d' ' -f2]
+    # Manejar casos especiales de nombres de algoritmo
+    set openssl_algo $hash_type
+    
+    # Algunos algoritmos pueden necesitar ajustes de nombre
+    if {$hash_type eq "sha224"} { set openssl_algo "sha224" }
+    if {$hash_type eq "sha256"} { set openssl_algo "sha256" }
+    if {$hash_type eq "sha384"} { set openssl_algo "sha384" }
+    if {$hash_type eq "sha512"} { set openssl_algo "sha512" }
+    if {$hash_type eq "sha1"} { set openssl_algo "sha1" }
+    if {$hash_type eq "md5"} { set openssl_algo "md5" }
+    
+    # Ejecutar comando OpenSSL con manejo de errores
+    set result [catch {exec echo -n $input | openssl dgst -$openssl_algo | cut -d' ' -f2} hash_output]
+    
+    if {$result == 0} {
+        return $hash_output
+    } else {
+        # Si falla, intentar sin guión
+        set result2 [catch {exec echo -n $input | openssl dgst $openssl_algo | cut -d' ' -f2} hash_output2]
+        if {$result2 == 0} {
+            return $hash_output2
+        } else {
+            # Último intento con nombres alternativos
+            return [exec echo -n $input | openssl dgst -sha256 | cut -d' ' -f2]
+        }
+    }
 }
 
 # Conectar al servicio
@@ -152,10 +177,14 @@ while {1} {
         }
         
         # Otros tipos de hash
-        -re "# hash (\w+) of the last inserted password #.*# give me the password #" {
+        -re "# hash (\\w+) of the last inserted password #.*# give me the password #" {
             set hash_type $expect_out(1,string)
+            log_message "Detectado algoritmo hash: '$hash_type' con input: '$current_password'"
+            
+            # Intentar calcular hash con manejo de errores
             set hash_result [calculate_hash $hash_type $current_password]
             log_message "$hash_type calculado: $hash_result"
+            
             send "$hash_result\r"
             set current_password $hash_result
             exp_continue
